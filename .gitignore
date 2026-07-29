@@ -1,0 +1,17 @@
+.env
+.venv/
+__pycache__/
+*.egg-info/
+build/
+dist/
+
+# Local Claude Code permission config — machine-specific, not shared
+.claude/
+
+# Raw working files (audio + intermediate transcripts) — internal/sensitive,
+# never commit. Published summaries under meetings/<profile>/ ARE committed.
+meetings/_raw/
+*.wav
+
+# Stray test recordings from ad-hoc audio diagnostics
+test_recording.wav

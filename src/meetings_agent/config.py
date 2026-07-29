@@ -1,0 +1,38 @@
+import os
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+load_dotenv()
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = PROJECT_ROOT
+MEETINGS_DIR = REPO_ROOT / "meetings"
+# Raw working files (recording.wav + intermediate transcripts) live here,
+# split by profile: _raw/<profile>/<date>/. The polished summaries land in
+# the profile-organized layout under MEETINGS_DIR (see output_layout.py).
+RAW_DIR = MEETINGS_DIR / "_raw"
+SPRINT_PROMPT_FILE = PROJECT_ROOT / "prompts" / "sprint_summary.md"
+CLIENT_PROMPT_FILE = PROJECT_ROOT / "prompts" / "client_meeting.md"
+GENERAL_PROMPT_FILE = PROJECT_ROOT / "prompts" / "general_summary.md"
+CORRECTION_PROMPT_FILE = PROJECT_ROOT / "prompts" / "transcript_correction.md"
+GLOSSARY_FILE = PROJECT_ROOT / "glossary.md"
+
+CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-sonnet-5")
+MEETING_TYPE = os.getenv("MEETING_TYPE", "auto")  # "auto" = detect from transcript; or sprint/client/general
+WHISPER_MODEL = os.getenv("WHISPER_MODEL", "medium")
+WHISPER_LANGUAGE = os.getenv("WHISPER_LANGUAGE") or None
+# Default: append into a file inside meetings/ rather than anywhere in your
+# own knowledge base sight-unseen. Override via --to or KNOWLEDGE_FILE.
+KNOWLEDGE_FILE = os.getenv("KNOWLEDGE_FILE") or str(
+    MEETINGS_DIR / "knowledge-updates.md"
+)
+
+TRANSCRIBE_BACKEND = os.getenv("TRANSCRIBE_BACKEND", "local")  # "local" | "groq"
+GROQ_API_KEY = os.getenv("GROQ_API_KEY") or None
+GROQ_MODEL = os.getenv("GROQ_MODEL", "whisper-large-v3")
+
+# Auto commit+push the published summary to GitHub after summarize.
+AUTO_PUSH = os.getenv("AUTO_PUSH", "false").strip().lower() in ("1", "true", "yes")
+
+SAMPLE_RATE = 16_000
