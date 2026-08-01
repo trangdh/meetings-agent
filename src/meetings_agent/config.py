@@ -28,6 +28,12 @@ KNOWLEDGE_FILE = os.getenv("KNOWLEDGE_FILE") or str(
     MEETINGS_DIR / "knowledge-updates.md"
 )
 
+# Name/substring of the input device to use as the loopback (system-audio)
+# source. Windows doesn't need this — it uses real WASAPI loopback on the
+# default speaker. macOS/Linux have no loopback API, so this must point at
+# a virtual audio device (e.g. "BlackHole 2ch") — see README.
+LOOPBACK_DEVICE = os.getenv("LOOPBACK_DEVICE") or None
+
 TRANSCRIBE_BACKEND = os.getenv("TRANSCRIBE_BACKEND", "local")  # "local" | "groq"
 GROQ_API_KEY = os.getenv("GROQ_API_KEY") or None
 GROQ_MODEL = os.getenv("GROQ_MODEL", "whisper-large-v3")

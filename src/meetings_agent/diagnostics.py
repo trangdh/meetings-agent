@@ -1,8 +1,7 @@
-"""Pre-meeting audio check: confirm loopback + mic are both picking up signal
-on whatever device is currently the Windows default. Run this before every
-meeting, especially when the playback output changes (e.g. laptop speakers vs
-a TV/HDMI display) — the default output device can silently fail to loop back
-on some drivers.
+"""Pre-meeting audio check: confirm loopback + mic are both picking up signal.
+Run this before every meeting, especially when the playback output changes
+(e.g. laptop speakers vs a TV/HDMI display, or a newly-set-up virtual audio
+device on macOS/Linux) — the loopback source can silently fail on some setups.
 """
 
 import threading
@@ -10,7 +9,7 @@ import threading
 import numpy as np
 import soundcard as sc
 
-from .audio import capture_loopback, capture_mic
+from .audio import capture_loopback, capture_mic, loopback_source
 
 _SIGNAL_THRESHOLD = 1e-5
 
@@ -20,16 +19,15 @@ def _rms(x: np.ndarray) -> float:
 
 
 def check_audio(duration: float = 5.0) -> bool:
-    """Record `duration` seconds from the current default speaker (loopback)
-    and default microphone at the same time; print levels. Returns True if
-    both channels show signal above the noise floor.
+    """Record `duration` seconds from the loopback source and default
+    microphone at the same time; print levels. Returns True if both channels
+    show signal above the noise floor.
     """
-    speaker = sc.default_speaker()
+    loopback_label, loopback = loopback_source()
     mic = sc.default_microphone()
-    loopback = sc.get_microphone(id=str(speaker.name), include_loopback=True)
 
-    print(f"Default playback device (loopback source): {speaker.name}")
-    print(f"Default microphone:                        {mic.name}")
+    print(f"Loopback source (system audio): {loopback_label}")
+    print(f"Default microphone:             {mic.name}")
     print(f"\nRecording {duration:.0f}s — play audio through the meeting's output device")
     print("and say a few words into the mic now...")
 
@@ -57,9 +55,11 @@ def check_audio(duration: float = 5.0) -> bool:
         ok = False
         print(
             "\nWARNING: no loopback signal detected.\n"
-            f"  -> Check that '{speaker.name}' is set as the Windows Default Playback\n"
-            "     Device (Sound settings), not just Default Communications Device,\n"
-            "     and that audio is actually playing through it right now."
+            f"  -> Check that '{loopback_label}' is actually receiving system audio right now:\n"
+            "     on Windows, it must be the Default Playback Device (Sound settings), not\n"
+            "     just Default Communications Device; on macOS/Linux, check that your\n"
+            "     Multi-Output Device / virtual audio device is the current output and that\n"
+            "     LOOPBACK_DEVICE in .env matches it."
         )
     if mic_rms < _SIGNAL_THRESHOLD:
         ok = False

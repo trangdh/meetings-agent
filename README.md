@@ -8,7 +8,7 @@ Agent tham gia họp nhóm (Slack huddle): lắng nghe, transcript, tóm tắt n
 
 Slack **không có API chính thức** cho phép bot tự join huddle và truy cập audio stream. Vì vậy agent này chạy trên máy của một người tham gia huddle:
 
-1. **Record** — thu âm hệ thống (WASAPI loopback: nghe được tất cả mọi người trong huddle) + microphone (giọng của người chạy agent), mix thành một file WAV.
+1. **Record** — thu âm hệ thống (loopback: nghe được tất cả mọi người trong huddle — trên Windows dùng WASAPI có sẵn, trên macOS/Linux cần setup virtual audio device, xem [Setup audio trên macOS](#setup-audio-trên-macos)) + microphone (giọng của người chạy agent), mix thành một file WAV.
 2. **Transcribe** — chuyển audio thành transcript có timestamp bằng [faster-whisper](https://github.com/SYSTRAN/faster-whisper) (chạy local, hỗ trợ tiếng Việt + tiếng Anh) hoặc Groq API (cloud, nhanh hơn nhiều). Được "mồi" trước bằng danh sách từ khóa trong `glossary.md` để nghe đúng thuật ngữ hơn ngay từ đầu.
 3. **Correct** — whisper không biết tên riêng/thuật ngữ nội bộ nên hay nghe sai (vd "architecture" → "ạc quốc"). Bước này dùng Claude đọc lại toàn bộ transcript + `glossary.md` để sửa những chỗ nghe sai dựa vào ngữ cảnh, không đổi nghĩa hay bịa thêm nội dung.
 4. **Summarize** — dùng Claude API tóm tắt theo đúng cấu trúc buổi họp (sprint/khách hàng/chung — xem bên dưới), trích action items, quyết định, và các knowledge updates.
@@ -42,13 +42,35 @@ pip install -e .
 copy .env.example .env   # rồi điền ANTHROPIC_API_KEY
 ```
 
-Yêu cầu: Python 3.10+, Windows (thu âm loopback dùng WASAPI). macOS/Linux cần cấu hình loopback device riêng (BlackHole, PulseAudio monitor...).
+macOS/Linux: `python3 -m venv .venv && source .venv/bin/activate && pip install -e . && cp .env.example .env`.
+
+Yêu cầu: Python 3.10+. **Windows**: thu âm loopback dùng WASAPI, hoạt động ngay không cần setup thêm. **macOS/Linux**: không có API loopback nên cần cài virtual audio device trước — xem [Setup audio trên macOS](#setup-audio-trên-macos) bên dưới.
+
+### Setup audio trên macOS
+
+macOS không có API cho phép "nghe lại" audio hệ thống như WASAPI của Windows, nên cần 1 bước setup thêm: route audio hệ thống sang một virtual audio device, rồi agent thu device đó như một microphone bình thường.
+
+1. Cài [BlackHole](https://existential.audio/blackhole/) (virtual audio driver, miễn phí):
+   ```bash
+   brew install blackhole-2ch
+   ```
+2. Mở app **Audio MIDI Setup** (Spotlight tìm đúng tên) → góc dưới trái bấm "+" → **Create Multi-Output Device** → tick cả loa hiện tại của bạn (vd "MacBook Pro Speakers") **và** "BlackHole 2ch". Cách này giúp bạn vẫn nghe được cuộc họp bình thường, đồng thời audio cũng được route sang BlackHole để agent thu.
+3. System Settings → Sound → Output → chọn Multi-Output Device vừa tạo làm output, **trước khi** join huddle.
+4. Trong `.env`, trỏ agent vào đúng device đó:
+   ```
+   LOOPBACK_DEVICE=BlackHole 2ch
+   ```
+5. Chạy `meetings-agent check-audio` để xác nhận cả 2 kênh (loopback qua BlackHole + mic) đều bắt được tín hiệu, trước khi ghi âm buổi họp thật.
+
+Xong buổi họp, nhớ đổi Output về lại loa thường — Multi-Output Device có độ trễ nhỏ, không nên để làm mặc định lâu dài ngoài lúc ghi họp.
+
+(Linux: PulseAudio thường có sẵn "monitor" source cho mỗi sink, không cần cài gì thêm — set `LOOPBACK_DEVICE` thành tên monitor đó, vd `Monitor of Built-in Audio`.)
 
 ## Sử dụng
 
 ### Trước mỗi buổi họp — kiểm tra audio
 
-`sc.default_speaker()` tự lấy bất kỳ thiết bị nào đang là **Default Playback Device** của Windows, nên nếu output audio khi họp là TV (qua HDMI/cast) thay vì loa laptop, agent vẫn hoạt động — miễn là bạn đã set TV làm Default Device trong Windows Sound settings *trước khi* chạy `record`. Một số driver audio (đặc biệt HDMI/display) có thể không hỗ trợ loopback tốt, nên luôn kiểm tra trước:
+Trên Windows, `soundcard` tự lấy bất kỳ thiết bị nào đang là **Default Playback Device**, nên nếu output audio khi họp là TV (qua HDMI/cast) thay vì loa laptop, agent vẫn hoạt động — miễn là bạn đã set TV làm Default Device trong Windows Sound settings *trước khi* chạy `record`. Một số driver audio (đặc biệt HDMI/display) có thể không hỗ trợ loopback tốt, nên luôn kiểm tra trước. Trên macOS, đây cũng là bước xác nhận `LOOPBACK_DEVICE` đã trỏ đúng và Multi-Output Device đang là output hiện tại:
 
 ```powershell
 meetings-agent check-audio
@@ -134,6 +156,7 @@ Summary được commit để team xem; `_raw/` và `*.wav` thì gitignore (nộ
 | `TRANSCRIBE_BACKEND` | `local` | `local` (faster-whisper, free) hoặc `groq` (cloud, nhanh hơn nhiều) |
 | `WHISPER_MODEL` | `medium` | Kích thước model whisper khi backend là `local` |
 | `GROQ_API_KEY` | — | Bắt buộc khi `TRANSCRIBE_BACKEND=groq` (lấy tại console.groq.com) |
+| `LOOPBACK_DEVICE` | — | Chỉ cần trên macOS/Linux — tên virtual audio device dùng làm loopback (vd `BlackHole 2ch`). Xem [Setup audio trên macOS](#setup-audio-trên-macos) |
 | `WHISPER_LANGUAGE` | *(auto)* | Ép ngôn ngữ transcript, ví dụ `vi` |
 | `KNOWLEDGE_FILE` | `meetings/knowledge-updates.md` | Đường dẫn mặc định cho `meetings-agent sync` (thay cho `--to`) |
 

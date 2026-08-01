@@ -1,9 +1,10 @@
-"""Record the huddle: system audio (WASAPI loopback) mixed with the local microphone.
+"""Record the huddle: system audio (loopback) mixed with the local microphone.
 
 Loopback captures everyone speaking in the huddle (what comes out of the
 speakers); the microphone captures the person running the agent.
 """
 
+import sys
 import threading
 import time
 from pathlib import Path
@@ -12,7 +13,30 @@ import numpy as np
 import soundcard as sc
 import soundfile as sf
 
-from .config import SAMPLE_RATE
+from .config import LOOPBACK_DEVICE, SAMPLE_RATE
+
+
+def loopback_source():
+    """Return (label, soundcard device) for the loopback/system-audio source.
+
+    Windows has real WASAPI loopback (`include_loopback=True`), so the
+    current default speaker works out of the box with no setup. macOS and
+    Linux have no such API — `soundcard` can only record from *input*
+    devices there, so system audio has to be routed to a virtual audio
+    device first (e.g. BlackHole on macOS, a PulseAudio monitor source on
+    Linux) and picked up like a regular microphone. `LOOPBACK_DEVICE` in
+    `.env` names that device (see README, mục "Setup audio trên macOS").
+    """
+    if LOOPBACK_DEVICE:
+        return LOOPBACK_DEVICE, sc.get_microphone(LOOPBACK_DEVICE)
+    if sys.platform == "win32":
+        speaker = sc.default_speaker()
+        return speaker.name, sc.get_microphone(id=str(speaker.name), include_loopback=True)
+    raise RuntimeError(
+        "Không có API loopback mặc định trên hệ điều hành này (chỉ Windows có WASAPI "
+        "loopback tự động). Cài virtual audio device (vd BlackHole trên macOS) rồi đặt "
+        "LOOPBACK_DEVICE trong .env — xem README mục 'Setup audio trên macOS'."
+    )
 
 # 4096 samples = 256ms per read at 16kHz. Larger blocks mean fewer Python
 # wakeups per second, which matters because a busy machine (screen share,
@@ -172,12 +196,11 @@ def record(meeting_dir: Path) -> Path:
     stop_file.unlink(missing_ok=True)  # clear stale signals from a previous run
     pause_file.unlink(missing_ok=True)
 
-    speaker = sc.default_speaker()
-    loopback = sc.get_microphone(id=str(speaker.name), include_loopback=True)
+    loopback_label, loopback = loopback_source()
     mic = sc.default_microphone()
 
     print(f"Recording huddle audio -> {wav_path}")
-    print(f"  loopback: {speaker.name}")
+    print(f"  loopback: {loopback_label}")
     print(f"  mic:      {mic.name}")
     print(f"Press Ctrl+C to stop, or create {stop_file} to stop remotely.")
 
