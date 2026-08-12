@@ -44,6 +44,9 @@ AUTO_PUSH = os.getenv("AUTO_PUSH", "false").strip().lower() in ("1", "true", "ye
 SAMPLE_RATE = 16_000
 
 
+_MISSING_KEY = "Thiếu ANTHROPIC_API_KEY — điền vào .env (xem .env.example)"
+
+
 def require_api_key(recovery_hint: str = "") -> None:
     """Raise if ANTHROPIC_API_KEY is unset, with an actionable message.
 
@@ -54,16 +57,26 @@ def require_api_key(recovery_hint: str = "") -> None:
     `run`'s `except (RuntimeError, anthropic.APIError)` catches. The user
     would meet it as a traceback after an hour-long meeting. RuntimeError is
     what both the CLI and the GUI already know how to display.
-
-    Separate from anthropic_client() so `run` can check before it starts
-    recording — cheaper for the user than being told afterwards, however
-    recoverable the recording is.
     """
     if not os.getenv("ANTHROPIC_API_KEY"):
-        raise RuntimeError(
-            "Thiếu ANTHROPIC_API_KEY — điền vào .env (xem .env.example) rồi chạy lại."
-            + recovery_hint
-        )
+        raise RuntimeError(f"{_MISSING_KEY} rồi chạy lại.{recovery_hint}")
+
+
+def warn_if_no_api_key(meeting_dir) -> None:
+    """Say a missing key will stop the summary — without refusing to record.
+
+    `run` does need the key for its last two steps, so saying so before the
+    meeting is worth it. Refusing to start is not: the recording is the only
+    part of this that cannot be redone, and trading it away to avoid re-running
+    one command afterwards is the wrong way round. Warn, then record.
+    """
+    if os.getenv("ANTHROPIC_API_KEY"):
+        return
+    print(
+        f"\nWARNING: {_MISSING_KEY}.\n"
+        "  Vẫn thu và transcribe bình thường — chỉ correct/summarize là dừng.\n"
+        f"  Điền key xong thì chạy: meetings-agent summarize {meeting_dir}\n"
+    )
 
 
 def anthropic_client():

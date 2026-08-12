@@ -114,13 +114,10 @@ def main() -> None:
             summarize(meeting_dir, args.meeting_type, args.sprint_number)
         elif args.command == "run":
             from .audio import record
-            from .config import require_api_key
+            from .config import warn_if_no_api_key
             from .correct import correct
             from .summarize import summarize
-            # `run` will certainly need the key, so ask for it before the
-            # meeting rather than after it: the recording survives a missing
-            # key either way, but nobody wants to find out at that point.
-            require_api_key()
+            warn_if_no_api_key(meeting_dir)
             record(meeting_dir)
             _transcribe(meeting_dir)
             try:
