@@ -44,6 +44,14 @@ copy .env.example .env   # rồi điền ANTHROPIC_API_KEY
 
 macOS/Linux: `python3 -m venv .venv && source .venv/bin/activate && pip install -e . && cp .env.example .env`.
 
+**Trên macOS có script làm hộ toàn bộ phần dưới đây:**
+
+```bash
+./scripts/setup_macos.sh
+```
+
+Nó dựng venv, cài BlackHole (kèm `killall coreaudiod`), tạo `.env`, rồi **tự kiểm chứng** bằng cách phát một câu test và đo cả 2 kênh — chứ không chỉ in hướng dẫn. Hai bước macOS không cho script làm thay (tạo Multi-Output Device, cấp quyền Microphone) thì nó hướng dẫn rồi chờ và kiểm tra lại. Chạy lại được nhiều lần, an toàn: cái gì đã xong thì bỏ qua. Nếu tự làm tay thì đọc tiếp bên dưới.
+
 Yêu cầu: Python 3.10+. **Windows**: thu âm loopback dùng WASAPI, hoạt động ngay không cần setup thêm. **macOS/Linux**: không có API loopback nên cần cài virtual audio device trước — xem [Setup audio trên macOS](#setup-audio-trên-macos) bên dưới.
 
 ### Setup audio trên macOS
