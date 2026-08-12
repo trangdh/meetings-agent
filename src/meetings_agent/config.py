@@ -44,8 +44,8 @@ AUTO_PUSH = os.getenv("AUTO_PUSH", "false").strip().lower() in ("1", "true", "ye
 SAMPLE_RATE = 16_000
 
 
-def anthropic_client():
-    """Anthropic client, refusing early with an actionable message if unusable.
+def require_api_key(recovery_hint: str = "") -> None:
+    """Raise if ANTHROPIC_API_KEY is unset, with an actionable message.
 
     A missing key is not caught anywhere useful otherwise: the SDK constructs
     a client with api_key=None quite happily and only raises TypeError deep
@@ -54,13 +54,26 @@ def anthropic_client():
     `run`'s `except (RuntimeError, anthropic.APIError)` catches. The user
     would meet it as a traceback after an hour-long meeting. RuntimeError is
     what both the CLI and the GUI already know how to display.
-    """
-    import anthropic  # lazy: record/transcribe must not pay for this import
 
+    Separate from anthropic_client() so `run` can check before it starts
+    recording — cheaper for the user than being told afterwards, however
+    recoverable the recording is.
+    """
     if not os.getenv("ANTHROPIC_API_KEY"):
         raise RuntimeError(
-            "Thiếu ANTHROPIC_API_KEY — điền vào .env (xem .env.example) rồi chạy lại. "
-            "Recording và transcript đã lưu, không mất gì: chạy lại "
-            "`meetings-agent summarize <meeting_dir>` là xong."
+            "Thiếu ANTHROPIC_API_KEY — điền vào .env (xem .env.example) rồi chạy lại."
+            + recovery_hint
         )
+
+
+def anthropic_client():
+    """Anthropic client, refusing early if there is no key to use it with."""
+    import anthropic  # lazy: keeps `import config` off the SDK's import cost
+
+    # Every caller here runs after the meeting was recorded, so say so: the
+    # failure looks alarming at a point where nothing is actually lost.
+    require_api_key(
+        " Recording và transcript đã lưu, không mất gì: chạy lại "
+        "`meetings-agent summarize <meeting_dir>` là xong."
+    )
     return anthropic.Anthropic()
