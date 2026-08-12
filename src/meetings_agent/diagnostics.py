@@ -9,7 +9,13 @@ import threading
 import numpy as np
 import soundcard as sc
 
-from .audio import MACOS_SILENCE_HINT, capture_loopback, capture_mic, loopback_source
+from .audio import (
+    MACOS_SILENCE_HINT,
+    capture_loopback,
+    capture_mic,
+    loopback_source,
+    warn_if_one_device,
+)
 
 _SIGNAL_THRESHOLD = 1e-5
 
@@ -28,6 +34,7 @@ def check_audio(duration: float = 5.0) -> bool:
 
     print(f"Loopback source (system audio): {loopback_label}")
     print(f"Default microphone:             {mic.name}")
+    warn_if_one_device(loopback, mic)
     print(f"\nRecording {duration:.0f}s — play audio through the meeting's output device")
     print("and say a few words into the mic now...")
 
@@ -50,6 +57,13 @@ def check_audio(duration: float = 5.0) -> bool:
     print(f"\nLoopback RMS: {loop_rms:.6f}")
     print(f"Mic RMS:      {mic_rms:.6f}")
 
+    # The Microphone-permission hint only belongs here when BOTH channels came
+    # back empty. The permission is granted per app, not per device, so a mic
+    # that read signal has already proved it is granted — repeating it next to
+    # a lone loopback failure sends the reader off to System Settings when the
+    # real cause (audio not routed to the virtual device) is named right above.
+    hint = MACOS_SILENCE_HINT if (loop_rms < _SIGNAL_THRESHOLD and mic_rms < _SIGNAL_THRESHOLD) else ""
+
     ok = True
     if loop_rms < _SIGNAL_THRESHOLD:
         ok = False
@@ -60,14 +74,14 @@ def check_audio(duration: float = 5.0) -> bool:
             "     just Default Communications Device; on macOS/Linux, check that your\n"
             "     Multi-Output Device / virtual audio device is the current output and that\n"
             "     LOOPBACK_DEVICE in .env matches it."
-            + MACOS_SILENCE_HINT
+            + hint
         )
     if mic_rms < _SIGNAL_THRESHOLD:
         ok = False
         print(
             "\nWARNING: no mic signal detected.\n"
             f"  -> Check that '{mic.name}' isn't muted and that you spoke during the test."
-            + MACOS_SILENCE_HINT
+            + hint
         )
 
     if ok:

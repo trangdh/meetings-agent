@@ -107,6 +107,24 @@ def is_dead_silence(data: np.ndarray) -> bool:
     return not np.any(data)
 
 
+def warn_if_one_device(loopback, mic) -> None:
+    """Warn when both channels would capture the same device.
+
+    On macOS the loopback source is an ordinary input device, so it can also
+    end up being the system's *default input* — macOS re-picks that whenever
+    devices come and go, and BlackHole is a candidate like any other. Both
+    channels then record the same system audio and the person running the
+    agent is missing from their own meeting. Nothing else catches this: both
+    channels carry signal, so the silence checks stay quiet and check-audio
+    reports OK.
+    """
+    if loopback.name == mic.name:
+        print(f"  WARNING: loopback and mic are the same device ('{mic.name}') — your own "
+              "voice will NOT be recorded.\n"
+              "     Set System Settings > Sound > Input back to a real microphone "
+              "(the virtual audio device belongs on Output only).")
+
+
 def capture_mic(device, stop: threading.Event, chunks: list,
                 pause: threading.Event | None = None) -> None:
     """Capture the microphone, reopening the stream if it errors mid-session
@@ -227,6 +245,7 @@ def record(meeting_dir: Path) -> Path:
     print(f"Recording huddle audio -> {wav_path}")
     print(f"  loopback: {loopback_label}")
     print(f"  mic:      {mic.name}")
+    warn_if_one_device(loopback, mic)
     print(f"Press Ctrl+C to stop, or create {stop_file} to stop remotely.")
 
     stop = threading.Event()
