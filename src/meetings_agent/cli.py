@@ -79,6 +79,11 @@ def main() -> None:
 
     sub.add_parser("gui", help="launch the click-to-run desktop window")
 
+    sub.add_parser(
+        "watch",
+        help="poll Slack and record automatically for as long as you are in a huddle",
+    )
+
     args = parser.parse_args()
 
     if args.command == "check-audio":
@@ -96,6 +101,20 @@ def main() -> None:
     if args.command == "gui":
         from .gui import launch_gui
         launch_gui()
+        return
+
+    if args.command == "watch":
+        from .config import require_api_key
+        from .huddle import watch
+        # Same reasoning as `run`: watch summarizes every huddle it records, so
+        # a missing key should stop it now, not after the first meeting.
+        try:
+            require_api_key()
+            watch()
+        except (FileNotFoundError, RuntimeError) as e:
+            sys.exit(str(e))
+        except KeyboardInterrupt:
+            print("\nStopped watching.")
         return
 
     meeting_dir = _meeting_dir(args.meeting_dir, args.meeting_type)

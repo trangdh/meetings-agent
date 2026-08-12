@@ -34,6 +34,11 @@ KNOWLEDGE_FILE = os.getenv("KNOWLEDGE_FILE") or str(
 # a virtual audio device (e.g. "BlackHole 2ch") — see README.
 LOOPBACK_DEVICE = os.getenv("LOOPBACK_DEVICE") or None
 
+# Slack token for `meetings-agent watch`, which polls users.profile.get to see
+# when you join a huddle. Needs the `users.profile:read` scope. Only that one
+# command uses it; everything else works without a Slack token at all.
+SLACK_TOKEN = os.getenv("SLACK_TOKEN") or None
+
 TRANSCRIBE_BACKEND = os.getenv("TRANSCRIBE_BACKEND", "local")  # "local" | "groq"
 GROQ_API_KEY = os.getenv("GROQ_API_KEY") or None
 GROQ_MODEL = os.getenv("GROQ_MODEL", "whisper-large-v3")

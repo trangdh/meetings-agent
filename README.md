@@ -114,6 +114,39 @@ GUI chạy bằng tkinter. Python cài qua Homebrew **không kèm tkinter** — 
 
 `summarize` tự động ưu tiên dùng `transcript_corrected.md` nếu đã chạy `correct`, nếu không sẽ dùng `transcript.md` gốc. Cách chọn loại họp (`--type`) xem mục [Các loại buổi họp có sẵn](#các-loại-buổi-họp-có-sẵn) ở trên.
 
+### Tự động thu khi vào huddle
+
+Các lệnh trên đều cần bạn tự bấm chạy khi buổi họp bắt đầu. `watch` bỏ bước đó đi: nó hỏi Slack xem bạn đã vào huddle chưa, vào thì thu, ra thì dừng và chạy tiếp transcribe → correct → summarize.
+
+```powershell
+meetings-agent watch     # chạy nền suốt ngày làm việc, Ctrl+C để dừng
+```
+
+Slack **không** có API cho phép lấy audio của huddle — đó vẫn là lý do agent phải thu bằng card âm thanh trên máy bạn. Nhưng *trạng thái* huddle thì có: `users.profile.get` trả về trường `huddle_state`. `watch` hỏi trường đó mỗi 10 giây (giới hạn của Slack là 100+ request/phút nên không bao giờ chạm trần).
+
+Cần một Slack token:
+
+1. Tạo Slack app tại [api.slack.com/apps](https://api.slack.com/apps) → "From scratch", chọn workspace của team.
+2. Vào **OAuth & Permissions** → mục **User Token Scopes** (không phải Bot Token Scopes) → thêm **`users.profile:read`**.
+3. Bấm **Install to Workspace** (một số workspace cần admin duyệt), copy **User OAuth Token** — bắt đầu bằng `xoxp-`.
+4. Điền vào `.env`:
+   ```
+   SLACK_TOKEN=xoxp-...
+   ```
+
+Phải là **user token**, không dùng được bot token: API trả về trạng thái của chính chủ sở hữu token, mà bot thì không bao giờ ở trong huddle — dùng nhầm bot token thì `watch` sẽ ngồi im mãi không thu gì. Nó có cảnh báo ngay lúc khởi động nếu phát hiện trường hợp này.
+
+Không set `SLACK_TOKEN` thì chỉ mỗi lệnh `watch` báo lỗi; mọi lệnh khác chạy bình thường không cần Slack.
+
+Vài điểm về cách nó hoạt động:
+
+- Mỗi huddle là **một thư mục riêng** theo giờ bắt đầu (`_raw/<type>/2026-08-12-1430`), không phải một thư mục mỗi ngày — hai huddle trong cùng buổi chiều là hai buổi họp khác nhau.
+- Huddle **ngắn hơn 60 giây** thì giữ file audio nhưng không transcribe/summarize — vào nói một câu rồi thoát không phải là buổi họp, và tóm tắt nó chỉ tốn tiền API.
+- Mất mạng, Slack lỗi, hay rate limit đều **không làm dừng** `watch` — nó báo một lần rồi hỏi tiếp. Chỉ token sai/hết hạn mới dừng hẳn, vì hỏi lại cũng không giải quyết được.
+- Nếu đang ở trong huddle sẵn lúc khởi động, buổi đó **không** được thu — chỉ thu từ buổi kế tiếp.
+
+⚠️ Tự động thu khác hẳn với tự bấm thu: người trong huddle sẽ không biết đang bị ghi âm trừ khi bạn nói ra. Ở nhiều nơi đó còn là yêu cầu pháp lý. `watch` in một dòng nhắc mỗi lần bắt đầu thu — hãy báo cho mọi người.
+
 ## Customize cho team của bạn
 
 Đây là 3 chỗ bạn cần tự sửa để dùng cho team mình:
