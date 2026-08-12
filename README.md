@@ -4,6 +4,25 @@ Agent tham gia họp nhóm (Slack huddle): lắng nghe, transcript, tóm tắt n
 
 Đây là bản **tổng quát hóa, public** của một tool nội bộ — mọi nội dung/thuật ngữ đặc thù của công ty gốc đã được gỡ bỏ. Bạn cần tự điền glossary, tự chỉnh prompts theo văn hóa họp của team, và tự cấu hình API key riêng (xem [Customize cho team của bạn](#customize-cho-team-của-bạn)).
 
+## Bắt đầu nhanh (macOS)
+
+```bash
+git clone <repo-url> meetings-agent && cd meetings-agent
+./scripts/setup_macos.sh    # hỏi ANTHROPIC_API_KEY, rồi tự kiểm tra audio
+```
+
+Script dựng venv, cài BlackHole, tạo `.env`, và **không báo xong cho tới khi thật sự thu được tín hiệu** — nó tự phát một câu test rồi đo cả 2 kênh. Có 2 bước macOS không cho script làm thay (tạo Multi-Output Device, cấp quyền Microphone); nó hướng dẫn rồi chờ bạn làm và kiểm tra lại. Chạy lại nhiều lần vô hại: cái gì xong rồi thì bỏ qua.
+
+Chạy trong **Terminal thật**, không phải terminal tích hợp của IDE — quyền Microphone được cấp cho app nào chạy lệnh, và bạn sẽ phải cấp cho đúng app đó.
+
+Xong thì mỗi buổi họp:
+
+```bash
+.venv/bin/meetings-agent run    # join huddle trước, rồi chạy. Ctrl+C khi xong
+```
+
+Chi tiết từng bước, cách làm tay, và Windows/Linux: [Cài đặt](#cài-đặt) bên dưới.
+
 ## Cách hoạt động (và giới hạn của Slack)
 
 Slack **không có API chính thức** cho phép bot tự join huddle và truy cập audio stream. Vì vậy agent này chạy trên máy của một người tham gia huddle:
@@ -35,6 +54,8 @@ Mặc định `auto`: nếu quên đổi loại họp, tool tự phân loại tr
 
 ## Cài đặt
 
+Trên macOS thì [Bắt đầu nhanh](#bắt-đầu-nhanh-macos) ở trên đã làm hết phần này rồi. Mục này dành cho Windows/Linux, hoặc khi bạn muốn tự làm từng bước.
+
 ```powershell
 python -m venv .venv
 .venv\Scripts\activate
@@ -43,14 +64,6 @@ copy .env.example .env   # rồi điền ANTHROPIC_API_KEY
 ```
 
 macOS/Linux: `python3 -m venv .venv && source .venv/bin/activate && pip install -e . && cp .env.example .env`.
-
-**Trên macOS có script làm hộ toàn bộ phần dưới đây:**
-
-```bash
-./scripts/setup_macos.sh
-```
-
-Nó dựng venv, cài BlackHole (kèm `killall coreaudiod`), tạo `.env`, rồi **tự kiểm chứng** bằng cách phát một câu test và đo cả 2 kênh — chứ không chỉ in hướng dẫn. Hai bước macOS không cho script làm thay (tạo Multi-Output Device, cấp quyền Microphone) thì nó hướng dẫn rồi chờ và kiểm tra lại. Chạy lại được nhiều lần, an toàn: cái gì đã xong thì bỏ qua. Nếu tự làm tay thì đọc tiếp bên dưới.
 
 Yêu cầu: Python 3.10+. **Windows**: thu âm loopback dùng WASAPI, hoạt động ngay không cần setup thêm. **macOS/Linux**: không có API loopback nên cần cài virtual audio device trước — xem [Setup audio trên macOS](#setup-audio-trên-macos) bên dưới.
 
