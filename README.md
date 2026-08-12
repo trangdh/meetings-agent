@@ -4,6 +4,25 @@ Agent tham gia họp nhóm (Slack huddle): lắng nghe, transcript, tóm tắt n
 
 Đây là bản **tổng quát hóa, public** của một tool nội bộ — mọi nội dung/thuật ngữ đặc thù của công ty gốc đã được gỡ bỏ. Bạn cần tự điền glossary, tự chỉnh prompts theo văn hóa họp của team, và tự cấu hình API key riêng (xem [Customize cho team của bạn](#customize-cho-team-của-bạn)).
 
+## Bắt đầu nhanh (macOS)
+
+```bash
+git clone <repo-url> meetings-agent && cd meetings-agent
+./scripts/setup_macos.sh    # hỏi ANTHROPIC_API_KEY, rồi tự kiểm tra audio
+```
+
+Script dựng venv, cài BlackHole, tạo `.env`, và **không báo xong cho tới khi thật sự thu được tín hiệu** — nó tự phát một câu test rồi đo cả 2 kênh. Có 2 bước macOS không cho script làm thay (tạo Multi-Output Device, cấp quyền Microphone); nó hướng dẫn rồi chờ bạn làm và kiểm tra lại. Chạy lại nhiều lần vô hại: cái gì xong rồi thì bỏ qua — nên dùng nó luôn để kiểm tra trước buổi họp quan trọng.
+
+Chạy trong **Terminal thật**, không phải terminal tích hợp của IDE — quyền Microphone được cấp cho app nào chạy lệnh, và bạn sẽ phải cấp cho đúng app đó.
+
+Xong thì mỗi buổi họp:
+
+```bash
+.venv/bin/meetings-agent run    # join huddle trước, rồi chạy. Ctrl+C khi xong
+```
+
+Chi tiết từng bước, cách làm tay, và Windows/Linux: [Cài đặt](#cài-đặt) bên dưới.
+
 ## Cách hoạt động (và giới hạn của Slack)
 
 Slack **không có API chính thức** cho phép bot tự join huddle và truy cập audio stream. Vì vậy agent này chạy trên máy của một người tham gia huddle:
@@ -34,6 +53,8 @@ meetings-agent summarize meetings/_raw/general/2026-07-09 --type general   # lin
 Mặc định `auto`: nếu quên đổi loại họp, tool tự phân loại transcript vào đúng profile (sprint/client/general) rồi mới tóm tắt + lưu — nên với đa số trường hợp bạn không cần chỉ định `--type` gì cả. Giá trị mặc định lấy từ `MEETING_TYPE` trong `.env` (không set thì `auto`). Trong GUI có dropdown "Loại họp" để chọn trước khi bấm Summarize.
 
 ## Cài đặt
+
+Trên macOS thì [Bắt đầu nhanh](#bắt-đầu-nhanh-macos) ở trên đã làm hết phần này rồi. Mục này dành cho Windows/Linux, hoặc khi bạn muốn tự làm từng bước.
 
 ```powershell
 python -m venv .venv
