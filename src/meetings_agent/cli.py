@@ -83,7 +83,14 @@ def main() -> None:
 
     if args.command == "check-audio":
         from .diagnostics import check_audio
-        ok = check_audio(args.duration)
+        # Same friendly handling as the commands below: on macOS/Linux with no
+        # LOOPBACK_DEVICE set, loopback_source() raises the "install a virtual
+        # audio device" message — and check-audio is exactly the command that
+        # user runs first, so it must read that message, not a traceback.
+        try:
+            ok = check_audio(args.duration)
+        except (FileNotFoundError, RuntimeError) as e:
+            sys.exit(str(e))
         sys.exit(0 if ok else 1)
 
     if args.command == "gui":
