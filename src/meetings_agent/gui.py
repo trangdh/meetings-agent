@@ -38,8 +38,18 @@ AMBER = "#c98a1e"
 LOG_BG = "#12181b"
 LOG_FG = "#cdd6d3"
 
-FONT = "Segoe UI"
-FONT_MONO = "Cascadia Mono"
+# Font families are per-OS: naming one that isn't installed makes Tk fall back
+# to a default that ignores the requested sizing/weight, which visibly breaks
+# the layout. Every name below ships with its platform.
+if sys.platform == "darwin":
+    FONT = "Helvetica Neue"
+    FONT_MONO = "Menlo"
+elif sys.platform == "win32":
+    FONT = "Segoe UI"
+    FONT_MONO = "Cascadia Mono"
+else:
+    FONT = "DejaVu Sans"
+    FONT_MONO = "DejaVu Sans Mono"
 
 
 def _raw_dir(meeting_type: str) -> str:
@@ -320,11 +330,18 @@ class App:
         if not path.exists():
             self.log_queue.put(f"\nKhông tìm thấy file để mở: {path}\n")
             return
+        if sys.platform == "win32":
+            os.startfile(str(path))
+            return
+        import subprocess
+        # macOS has no xdg-open; `open` is its equivalent. Failing to launch a
+        # viewer must not take down the Tk callback that just finished a
+        # summary, so report it in the log like any other GUI-level problem.
+        opener = "open" if sys.platform == "darwin" else "xdg-open"
         try:
-            os.startfile(str(path))  # Windows
-        except AttributeError:
-            import subprocess
-            subprocess.Popen(["xdg-open", str(path)])
+            subprocess.Popen([opener, str(path)])
+        except OSError as e:
+            self.log_queue.put(f"\nKhông mở được file ({opener}: {e}): {path}\n")
 
     def _on_summary_done(self, published) -> None:
         self.last_summary = Path(published) if published else None
