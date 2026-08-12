@@ -60,7 +60,8 @@ macOS không có API cho phép "nghe lại" audio hệ thống như WASAPI của
    ```
    LOOPBACK_DEVICE=BlackHole 2ch
    ```
-5. Chạy `meetings-agent check-audio` để xác nhận cả 2 kênh (loopback qua BlackHole + mic) đều bắt được tín hiệu, trước khi ghi âm buổi họp thật.
+5. **Cấp quyền Microphone** cho app sẽ chạy agent (Terminal/iTerm, hoặc app GUI): System Settings → Privacy & Security → Microphone. Bước này áp dụng cho **cả 2 kênh** — trên macOS BlackHole cũng là một input device nên loopback cũng cần quyền này. Thiếu quyền thì CoreAudio trả về **im lặng tuyệt đối chứ không báo lỗi**, nhìn y hệt lỗi loopback chết ở dưới. Cấp xong phải khởi động lại app đó.
+6. Chạy `meetings-agent check-audio` để xác nhận cả 2 kênh (loopback qua BlackHole + mic) đều bắt được tín hiệu, trước khi ghi âm buổi họp thật.
 
 Xong buổi họp, nhớ đổi Output về lại loa thường — Multi-Output Device có độ trễ nhỏ, không nên để làm mặc định lâu dài ngoài lúc ghi họp.
 
@@ -97,8 +98,11 @@ Hoặc dùng GUI (click thay vì gõ lệnh terminal):
 
 ```powershell
 meetings-agent gui
-# hoặc double-click scripts\launch_gui.bat
+# Windows: hoặc double-click scripts\launch_gui.bat
+# macOS:   hoặc double-click scripts/launch_gui.command
 ```
+
+GUI chạy bằng tkinter. Python cài qua Homebrew **không kèm tkinter** — nếu thấy `No module named '_tkinter'` thì cài thêm `brew install python-tk@3.12` (đổi version cho khớp Python đang dùng) hoặc dùng bản Python từ python.org. CLI không cần tkinter.
 
 `summarize` tự động ưu tiên dùng `transcript_corrected.md` nếu đã chạy `correct`, nếu không sẽ dùng `transcript.md` gốc. Cách chọn loại họp (`--type`) xem mục [Các loại buổi họp có sẵn](#các-loại-buổi-họp-có-sẵn) ở trên.
 
