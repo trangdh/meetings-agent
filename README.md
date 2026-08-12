@@ -54,8 +54,14 @@ macOS không có API cho phép "nghe lại" audio hệ thống như WASAPI của
    ```bash
    brew install blackhole-2ch
    ```
+   Nếu sau khi cài mà không thấy "BlackHole 2ch" đâu cả (không có trong Audio MIDI Setup, `LOOPBACK_DEVICE` báo không tìm thấy device), restart audio daemon — driver mới chỉ được nạp khi `coreaudiod` khởi động lại:
+   ```bash
+   sudo killall coreaudiod
+   ```
 2. Mở app **Audio MIDI Setup** (Spotlight tìm đúng tên) → góc dưới trái bấm "+" → **Create Multi-Output Device** → tick cả loa hiện tại của bạn (vd "MacBook Pro Speakers") **và** "BlackHole 2ch". Cách này giúp bạn vẫn nghe được cuộc họp bình thường, đồng thời audio cũng được route sang BlackHole để agent thu.
 3. System Settings → Sound → Output → chọn Multi-Output Device vừa tạo làm output, **trước khi** join huddle.
+
+   ⚠️ BlackHole chỉ được nằm ở **Output** (thông qua Multi-Output Device). Đừng chọn nó ở tab **Input** — macOS đôi khi tự đổi input mặc định khi cắm/rút thiết bị. Khi đó cả 2 kênh cùng thu system audio và **giọng của chính bạn không được ghi**, trong khi mọi thứ nhìn vẫn bình thường: cả 2 kênh đều có tín hiệu nên `check-audio` vẫn báo OK. Agent có cảnh báo trường hợp này trước khi thu, nhưng Input phải là mic thật.
 4. Trong `.env`, trỏ agent vào đúng device đó:
    ```
    LOOPBACK_DEVICE=BlackHole 2ch
