@@ -27,7 +27,6 @@ step() { printf '\n\033[1m[%s/6]\033[0m %s\n' "$1" "$2"; }
 # interpreter that will actually run the agent, not whatever python3 happens
 # to be on PATH — those are routinely different versions with different
 # modules available.
-step 1 "Virtual environment and dependencies"
 # Whatever is first on PATH as `python3` is not necessarily usable: on this
 # machine it is a Homebrew 3.14 whose platform.mac_ver() returns empty, which
 # makes uv refuse it outright and breaks the ensurepip step of `python -m venv`.
