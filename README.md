@@ -69,7 +69,7 @@ macOS không có API cho phép "nghe lại" audio hệ thống như WASAPI của
 5. **Cấp quyền Microphone** cho app sẽ chạy agent (Terminal/iTerm, hoặc app GUI): System Settings → Privacy & Security → Microphone. Bước này áp dụng cho **cả 2 kênh** — trên macOS BlackHole cũng là một input device nên loopback cũng cần quyền này. Thiếu quyền thì CoreAudio trả về **im lặng tuyệt đối chứ không báo lỗi**, nhìn y hệt lỗi loopback chết ở dưới. Cấp xong phải khởi động lại app đó.
 6. Chạy `meetings-agent check-audio` để xác nhận cả 2 kênh (loopback qua BlackHole + mic) đều bắt được tín hiệu, trước khi ghi âm buổi họp thật.
 
-Xong buổi họp, nhớ đổi Output về lại loa thường — Multi-Output Device có độ trễ nhỏ, không nên để làm mặc định lâu dài ngoài lúc ghi họp.
+Xong buổi họp, nhớ đổi Output về lại loa thường — Multi-Output Device có độ trễ nhỏ, không nên để làm mặc định lâu dài ngoài lúc ghi họp. (Ngoại lệ: nếu dùng `meetings-agent watch` để tự thu thì phải để nguyên cả ngày — xem [Tự động thu khi vào huddle](#tự-động-thu-khi-vào-huddle).)
 
 (Linux: PulseAudio thường có sẵn "monitor" source cho mỗi sink, không cần cài gì thêm — set `LOOPBACK_DEVICE` thành tên monitor đó, vd `Monitor of Built-in Audio`.)
 
@@ -121,6 +121,16 @@ Các lệnh trên đều cần bạn tự bấm chạy khi buổi họp bắt đ
 ```powershell
 meetings-agent watch     # chạy nền suốt ngày làm việc, Ctrl+C để dừng
 ```
+
+#### Chạy ở đâu — đọc trước khi dựng
+
+`watch` **phải chạy trên laptop của một người thật sự vào huddle**. Không dựng được thành máy server chạy nền: agent thu bằng loopback, tức là thu âm thanh phát ra loa của chính máy đó, nên một máy không ở trong huddle sẽ không có gì để thu. Mà muốn máy đó ở trong huddle thì phải có người bấm "Join" trên nó — Slack không có API để một account tự join huddle. Máy server sẽ ngồi im vĩnh viễn vì `huddle_state` của nó không bao giờ đổi.
+
+Ba điều kiện đi kèm:
+
+1. **Chỉ một người trong team chạy `watch`.** Hai người cùng bật là hai bản thu trùng nhau của cùng một buổi họp. Chọn người hay đi họp nhất — những người còn lại không cài gì cả.
+2. **Buổi nào người đó vắng thì buổi đó không được thu.** Agent không thay mặt ai tham dự được.
+3. **Trên macOS, phải để Multi-Output Device làm Output mặc định thường trực.** Mục [Setup audio trên macOS](#setup-audio-trên-macos) khuyên đổi về loa thường sau khi họp xong vì Multi-Output có độ trễ nhỏ — lời khuyên đó dành cho lúc bạn tự bấm thu. Với `watch` thì không áp dụng được: nó thu tự động nên bạn không có lúc nào để kịp đổi output. Cứ để nguyên Multi-Output cả ngày, chấp nhận độ trễ. Quên bước này thì mọi bản thu sẽ chỉ có tiếng bạn, không có tiếng người khác — `record` báo ở cuối mỗi buổi, nhưng lúc đó buổi họp đã trôi qua rồi.
 
 Slack **không** có API cho phép lấy audio của huddle — đó vẫn là lý do agent phải thu bằng card âm thanh trên máy bạn. Nhưng *trạng thái* huddle thì có: `users.profile.get` trả về trường `huddle_state`. `watch` hỏi trường đó mỗi 10 giây (giới hạn của Slack là 100+ request/phút nên không bao giờ chạm trần).
 
