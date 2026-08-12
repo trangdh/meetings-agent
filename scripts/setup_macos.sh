@@ -28,13 +28,41 @@ step() { printf '\n\033[1m[%s/6]\033[0m %s\n' "$1" "$2"; }
 # to be on PATH — those are routinely different versions with different
 # modules available.
 step 1 "Virtual environment and dependencies"
+# Whatever is first on PATH as `python3` is not necessarily usable: on this
+# machine it is a Homebrew 3.14 whose platform.mac_ver() returns empty, which
+# makes uv refuse it outright and breaks the ensurepip step of `python -m venv`.
+# So audit the candidates instead of trusting the name, newest usable first.
+usable_python() {
+    for name in python3.13 python3.12 python3.11 python3; do
+        candidate=$(command -v "$name" 2>/dev/null) || continue
+        "$candidate" - "$PY_MIN_MINOR" <<'PY' >/dev/null 2>&1 || continue
+import platform, sys
+assert sys.version_info >= (3, int(sys.argv[1]))
+assert platform.mac_ver()[0], "reports no macOS version; uv and ensurepip both choke on this"
+PY
+        echo "$candidate"
+        return 0
+    done
+    return 1
+}
+
+step 1 "Virtual environment and dependencies"
 if [ ! -d "$VENV" ]; then
-    BOOTSTRAP=$(command -v python3 || true)
-    [ -n "$BOOTSTRAP" ] || die "python3 not found. Install Python 3.$PY_MIN_MINOR+ from python.org or 'brew install python@3.12'."
-    BOOT_MINOR=$("$BOOTSTRAP" -c 'import sys; print(sys.version_info.minor)')
-    [ "$BOOT_MINOR" -ge "$PY_MIN_MINOR" ] || die "python3 is 3.$BOOT_MINOR; 3.$PY_MIN_MINOR+ is required."
-    "$BOOTSTRAP" -m venv "$VENV" || die "could not create $VENV"
-    ok "created .venv with $("$BOOTSTRAP" --version)"
+    BOOTSTRAP=$(usable_python || true)
+    if [ -n "$BOOTSTRAP" ] && command -v uv >/dev/null && uv venv --python "$BOOTSTRAP" "$VENV" >/dev/null 2>&1; then
+        ok "created .venv with uv ($("$BOOTSTRAP" --version))"
+    elif [ -n "$BOOTSTRAP" ] && "$BOOTSTRAP" -m venv "$VENV" 2>/dev/null; then
+        ok "created .venv with $("$BOOTSTRAP" --version)"
+    elif command -v uv >/dev/null && uv venv "$VENV" >/dev/null 2>&1; then
+        # No healthy interpreter on PATH, but uv will fetch its own.
+        ok "created .venv with an interpreter uv provided ($("$VENV/bin/python" --version))"
+    else
+        rm -rf "$VENV"
+        die "could not create a virtual environment. No usable Python 3.$PY_MIN_MINOR+ was found
+      (a Homebrew python3 that reports no macOS version cannot bootstrap pip and is
+      rejected by uv). Either 'brew install uv' and re-run, or install Python from
+      python.org."
+    fi
 fi
 PYTHON="$VENV/bin/python"
 [ -x "$PYTHON" ] || die "$VENV exists but has no python in it. Delete the folder and re-run."
