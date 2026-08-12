@@ -44,6 +44,13 @@ def loopback_source():
 # ring buffer overflows and samples are dropped *silently*. Observed as
 # intermittent missing audio on real meetings with the old 64ms blocks.
 _BLOCK = 4096
+# ...but only Windows/Linux accept that size on the *stream*. CoreAudio
+# rejects any blocksize outside the device's own buffer-frame-size range
+# (15-512 on the built-in Mac devices and BlackHole), raising TypeError on
+# open — both capture threads then died on every retry and a Mac recorded
+# nothing but silence. None keeps the device's own size; record(numframes)
+# accumulates callback chunks, so reads still return _BLOCK frames.
+_STREAM_BLOCK = None if sys.platform == "darwin" else _BLOCK
 _LOOPBACK_PROBE_ATTEMPTS = 3
 _PROBE_FRAMES = SAMPLE_RATE // 4  # ~0.25s dead-stream probe, independent of _BLOCK
 _RECONNECT_BACKOFF = 2  # seconds to wait before reopening a stream that errored
@@ -99,7 +106,7 @@ def capture_mic(device, stop: threading.Event, chunks: list,
     pause_started = None
     while not stop.is_set():
         try:
-            with device.recorder(samplerate=SAMPLE_RATE, blocksize=_BLOCK) as rec:
+            with device.recorder(samplerate=SAMPLE_RATE, blocksize=_STREAM_BLOCK) as rec:
                 if started_at is None:
                     # Start the alignment clock at the first captured frame, so
                     # the stream's open latency isn't mistaken for a dropout and
@@ -143,7 +150,7 @@ def capture_loopback(device, stop: threading.Event, chunks: list,
     pause_started = None
     while not stop.is_set():
         try:
-            with device.recorder(samplerate=SAMPLE_RATE, blocksize=_BLOCK) as rec:
+            with device.recorder(samplerate=SAMPLE_RATE, blocksize=_STREAM_BLOCK) as rec:
                 # Short probe (~0.25s) to catch the dead-on-open quirk cheaply.
                 probe = rec.record(numframes=_PROBE_FRAMES)
                 if is_dead_silence(probe) and silent_attempts < _LOOPBACK_PROBE_ATTEMPTS - 1:
