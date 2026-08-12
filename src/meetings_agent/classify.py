@@ -8,9 +8,7 @@ force-fit into the sprint layout.
 
 import json
 
-import anthropic
-
-from .config import CLAUDE_MODEL
+from .config import CLAUDE_MODEL, anthropic_client
 
 _SAMPLE_CHARS = 6000  # meeting type is almost always clear from the opening
 
@@ -38,7 +36,7 @@ def detect_profile(transcript: str) -> tuple[str, str]:
     a wrong 'general' pollutes less than wrongly merging into the sprint file."""
     sample = transcript[:_SAMPLE_CHARS]
     try:
-        client = anthropic.Anthropic()
+        client = anthropic_client()
         resp = client.messages.create(
             model=CLAUDE_MODEL,
             max_tokens=300,

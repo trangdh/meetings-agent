@@ -42,3 +42,25 @@ GROQ_MODEL = os.getenv("GROQ_MODEL", "whisper-large-v3")
 AUTO_PUSH = os.getenv("AUTO_PUSH", "false").strip().lower() in ("1", "true", "yes")
 
 SAMPLE_RATE = 16_000
+
+
+def anthropic_client():
+    """Anthropic client, refusing early with an actionable message if unusable.
+
+    A missing key is not caught anywhere useful otherwise: the SDK constructs
+    a client with api_key=None quite happily and only raises TypeError deep
+    inside the first request ("Could not resolve authentication method"),
+    which neither the CLI's `except (FileNotFoundError, RuntimeError)` nor
+    `run`'s `except (RuntimeError, anthropic.APIError)` catches. The user
+    would meet it as a traceback after an hour-long meeting. RuntimeError is
+    what both the CLI and the GUI already know how to display.
+    """
+    import anthropic  # lazy: record/transcribe must not pay for this import
+
+    if not os.getenv("ANTHROPIC_API_KEY"):
+        raise RuntimeError(
+            "Thiếu ANTHROPIC_API_KEY — điền vào .env (xem .env.example) rồi chạy lại. "
+            "Recording và transcript đã lưu, không mất gì: chạy lại "
+            "`meetings-agent summarize <meeting_dir>` là xong."
+        )
+    return anthropic.Anthropic()

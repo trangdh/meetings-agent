@@ -24,7 +24,7 @@ from pathlib import Path
 
 import anthropic
 
-from .config import CLAUDE_MODEL, CORRECTION_PROMPT_FILE, GLOSSARY_FILE
+from .config import CLAUDE_MODEL, CORRECTION_PROMPT_FILE, GLOSSARY_FILE, anthropic_client
 
 EDITS_SCHEMA = {
     "type": "object",
@@ -127,7 +127,7 @@ def correct(meeting_dir: Path) -> Path:
             "cache_control": {"type": "ephemeral"},
         },
     ]
-    client = anthropic.Anthropic()
+    client = anthropic_client()
 
     batches = [segments[i : i + BATCH_SIZE] for i in range(0, len(segments), BATCH_SIZE)]
     print(f"Correcting transcript with {CLAUDE_MODEL} using your glossary "
