@@ -83,7 +83,14 @@ def main() -> None:
 
     if args.command == "check-audio":
         from .diagnostics import check_audio
-        ok = check_audio(args.duration)
+        # Same friendly handling as the commands below: on macOS/Linux with no
+        # LOOPBACK_DEVICE set, loopback_source() raises the "install a virtual
+        # audio device" message — and check-audio is exactly the command that
+        # user runs first, so it must read that message, not a traceback.
+        try:
+            ok = check_audio(args.duration)
+        except (FileNotFoundError, RuntimeError) as e:
+            sys.exit(str(e))
         sys.exit(0 if ok else 1)
 
     if args.command == "gui":
@@ -107,8 +114,13 @@ def main() -> None:
             summarize(meeting_dir, args.meeting_type, args.sprint_number)
         elif args.command == "run":
             from .audio import record
+            from .config import require_api_key
             from .correct import correct
             from .summarize import summarize
+            # `run` will certainly need the key, so ask for it before the
+            # meeting rather than after it: the recording survives a missing
+            # key either way, but nobody wants to find out at that point.
+            require_api_key()
             record(meeting_dir)
             _transcribe(meeting_dir)
             try:

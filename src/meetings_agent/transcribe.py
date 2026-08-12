@@ -27,7 +27,11 @@ def _load_whisper_keywords() -> str | None:
         return None
     for line in text.split(marker, 1)[1].splitlines():
         line = line.strip()
-        if line and not line.startswith("#") and not line.startswith("---"):
+        # `<!--` is skipped too: the shipped glossary.md keeps an HTML comment
+        # ("Ví dụ — xóa dòng này...") directly above the keyword line, so
+        # without this whisper gets primed with that instruction sentence
+        # instead of the team's vocabulary.
+        if line and not line.startswith(("#", "---", "<!--")):
             return line
     return None
 

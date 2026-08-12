@@ -7,9 +7,7 @@ see profiles.py. Everything else in the pipeline is profile-agnostic.
 import json
 from pathlib import Path
 
-import anthropic
-
-from .config import AUTO_PUSH, CLAUDE_MODEL, GLOSSARY_FILE, MEETING_TYPE
+from .config import AUTO_PUSH, CLAUDE_MODEL, GLOSSARY_FILE, MEETING_TYPE, anthropic_client
 from .output_layout import publish
 from .profiles import get_profile
 
@@ -54,7 +52,7 @@ def summarize(meeting_dir: Path, meeting_type: str | None = None,
             ),
         })
 
-    client = anthropic.Anthropic()
+    client = anthropic_client()
     print(f"Summarizing with {CLAUDE_MODEL}...")
     with client.messages.stream(
         model=CLAUDE_MODEL,

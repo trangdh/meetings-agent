@@ -54,13 +54,20 @@ macOS không có API cho phép "nghe lại" audio hệ thống như WASAPI của
    ```bash
    brew install blackhole-2ch
    ```
+   Nếu sau khi cài mà không thấy "BlackHole 2ch" đâu cả (không có trong Audio MIDI Setup, `LOOPBACK_DEVICE` báo không tìm thấy device), restart audio daemon — driver mới chỉ được nạp khi `coreaudiod` khởi động lại:
+   ```bash
+   sudo killall coreaudiod
+   ```
 2. Mở app **Audio MIDI Setup** (Spotlight tìm đúng tên) → góc dưới trái bấm "+" → **Create Multi-Output Device** → tick cả loa hiện tại của bạn (vd "MacBook Pro Speakers") **và** "BlackHole 2ch". Cách này giúp bạn vẫn nghe được cuộc họp bình thường, đồng thời audio cũng được route sang BlackHole để agent thu.
 3. System Settings → Sound → Output → chọn Multi-Output Device vừa tạo làm output, **trước khi** join huddle.
+
+   ⚠️ BlackHole chỉ được nằm ở **Output** (thông qua Multi-Output Device). Đừng chọn nó ở tab **Input** — macOS đôi khi tự đổi input mặc định khi cắm/rút thiết bị. Khi đó cả 2 kênh cùng thu system audio và **giọng của chính bạn không được ghi**, trong khi mọi thứ nhìn vẫn bình thường: cả 2 kênh đều có tín hiệu nên `check-audio` vẫn báo OK. Agent có cảnh báo trường hợp này trước khi thu, nhưng Input phải là mic thật.
 4. Trong `.env`, trỏ agent vào đúng device đó:
    ```
    LOOPBACK_DEVICE=BlackHole 2ch
    ```
-5. Chạy `meetings-agent check-audio` để xác nhận cả 2 kênh (loopback qua BlackHole + mic) đều bắt được tín hiệu, trước khi ghi âm buổi họp thật.
+5. **Cấp quyền Microphone** cho app sẽ chạy agent (Terminal/iTerm, hoặc app GUI): System Settings → Privacy & Security → Microphone. Bước này áp dụng cho **cả 2 kênh** — trên macOS BlackHole cũng là một input device nên loopback cũng cần quyền này. Thiếu quyền thì CoreAudio trả về **im lặng tuyệt đối chứ không báo lỗi**, nhìn y hệt lỗi loopback chết ở dưới. Cấp xong phải khởi động lại app đó.
+6. Chạy `meetings-agent check-audio` để xác nhận cả 2 kênh (loopback qua BlackHole + mic) đều bắt được tín hiệu, trước khi ghi âm buổi họp thật.
 
 Xong buổi họp, nhớ đổi Output về lại loa thường — Multi-Output Device có độ trễ nhỏ, không nên để làm mặc định lâu dài ngoài lúc ghi họp.
 
@@ -76,7 +83,9 @@ Trên Windows, `soundcard` tự lấy bất kỳ thiết bị nào đang là **D
 meetings-agent check-audio
 ```
 
-**Lưu ý về loopback không ổn định:** trên một số driver audio, loopback stream đôi khi "chết" ngay khi mở — im lặng tuyệt đối dù có audio đang phát. Agent tự phát hiện (im lặng bit-chính-xác, khác với âm thanh thật dù nhỏ vẫn có nhiễu nền) và tự mở lại stream tối đa 3 lần trước khi bắt đầu ghi thật. Nếu vẫn thất bại sau 3 lần, sẽ có cảnh báo `WARNING: still silent after 3 attempts` trên console khi chạy `record` — nếu thấy dòng này, dừng lại và chạy `check-audio` để kiểm tra trước khi họp tiếp tục.
+**Lưu ý về loopback không ổn định (Windows):** trên một số driver audio, loopback stream đôi khi "chết" ngay khi mở — im lặng tuyệt đối dù có audio đang phát. Agent tự phát hiện (im lặng bit-chính-xác, khác với âm thanh thật dù nhỏ vẫn có nhiễu nền) và tự mở lại stream tối đa 3 lần trước khi bắt đầu ghi thật. Nếu vẫn thất bại sau 3 lần, sẽ có cảnh báo `WARNING: still silent after 3 attempts` trên console khi chạy `record` — nếu thấy dòng này, dừng lại và chạy `check-audio` để kiểm tra trước khi họp tiếp tục.
+
+Cách tự phát hiện này chỉ chạy trên Windows: nó dựa vào việc loopback WASAPI luôn có nhiễu nền, nên im lặng tuyệt đối nghĩa là stream chết. Virtual audio device trên macOS thì im lặng tuyệt đối một cách hợp lệ mỗi khi chưa có ai nói, nên trên macOS agent bỏ qua bước này (nếu không sẽ báo động giả ở mọi buổi họp bắt đầu trong im lặng). Bù lại, **trên mọi hệ điều hành**, nếu cả buổi họp thu về im lặng tuyệt đối thì `record` báo ngay khi vừa dừng thu — lúc bạn còn ngồi ở máy, chứ không phải đến bước `transcribe` mới biết. Trên macOS, nguyên nhân hay gặp nhất là quyền Microphone hoặc Output không còn trỏ vào Multi-Output Device.
 
 ```powershell
 # Cách nhanh nhất: join huddle trên Slack rồi chạy, Ctrl+C khi họp xong
@@ -97,8 +106,11 @@ Hoặc dùng GUI (click thay vì gõ lệnh terminal):
 
 ```powershell
 meetings-agent gui
-# hoặc double-click scripts\launch_gui.bat
+# Windows: hoặc double-click scripts\launch_gui.bat
+# macOS:   hoặc double-click scripts/launch_gui.command
 ```
+
+GUI chạy bằng tkinter. Python cài qua Homebrew **không kèm tkinter** — nếu thấy `No module named '_tkinter'` thì cài thêm `brew install python-tk@3.12` (đổi version cho khớp Python đang dùng) hoặc dùng bản Python từ python.org. CLI không cần tkinter.
 
 `summarize` tự động ưu tiên dùng `transcript_corrected.md` nếu đã chạy `correct`, nếu không sẽ dùng `transcript.md` gốc. Cách chọn loại họp (`--type`) xem mục [Các loại buổi họp có sẵn](#các-loại-buổi-họp-có-sẵn) ở trên.
 

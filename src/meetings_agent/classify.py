@@ -8,9 +8,7 @@ force-fit into the sprint layout.
 
 import json
 
-import anthropic
-
-from .config import CLAUDE_MODEL
+from .config import CLAUDE_MODEL, anthropic_client
 
 _SAMPLE_CHARS = 6000  # meeting type is almost always clear from the opening
 
@@ -34,11 +32,17 @@ _SYSTEM = """Bạn phân loại transcript một buổi họp của team vào Đ
 
 
 def detect_profile(transcript: str) -> tuple[str, str]:
-    """Return (profile_name, reason). Falls back to 'general' on any error —
-    a wrong 'general' pollutes less than wrongly merging into the sprint file."""
+    """Return (profile_name, reason). Falls back to 'general' when the
+    classification itself fails — a wrong 'general' pollutes less than wrongly
+    merging into the sprint file. A missing API key is not that kind of
+    failure and is raised."""
     sample = transcript[:_SAMPLE_CHARS]
+    # Built outside the try: 'general' is a sane fallback for a classification
+    # that came back wrong, but not for a missing API key — that must reach the
+    # CLI as its own one-line message instead of being reported as a failed
+    # classification and then raised again by the summarize call right after.
+    client = anthropic_client()
     try:
-        client = anthropic.Anthropic()
         resp = client.messages.create(
             model=CLAUDE_MODEL,
             max_tokens=300,
