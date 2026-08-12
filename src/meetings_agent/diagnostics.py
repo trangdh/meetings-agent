@@ -9,7 +9,7 @@ import threading
 import numpy as np
 import soundcard as sc
 
-from .audio import capture_loopback, capture_mic, loopback_source
+from .audio import MACOS_SILENCE_HINT, capture_loopback, capture_mic, loopback_source
 
 _SIGNAL_THRESHOLD = 1e-5
 
@@ -60,12 +60,14 @@ def check_audio(duration: float = 5.0) -> bool:
             "     just Default Communications Device; on macOS/Linux, check that your\n"
             "     Multi-Output Device / virtual audio device is the current output and that\n"
             "     LOOPBACK_DEVICE in .env matches it."
+            + MACOS_SILENCE_HINT
         )
     if mic_rms < _SIGNAL_THRESHOLD:
         ok = False
         print(
             "\nWARNING: no mic signal detected.\n"
             f"  -> Check that '{mic.name}' isn't muted and that you spoke during the test."
+            + MACOS_SILENCE_HINT
         )
 
     if ok:

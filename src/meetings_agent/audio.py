@@ -51,6 +51,23 @@ _BLOCK = 4096
 # nothing but silence. None keeps the device's own size; record(numframes)
 # accumulates callback chunks, so reads still return _BLOCK frames.
 _STREAM_BLOCK = None if sys.platform == "darwin" else _BLOCK
+# The dead-on-open probe below only distinguishes anything because a live
+# WASAPI loopback carries a noise floor. A macOS virtual device is bit-exact
+# zero whenever nothing is playing, so there the probe fires on every quiet
+# start, burns its reopens, and cries wolf — and reopening fixes neither of
+# the real mac causes (wrong output device, denied permission), which
+# check-audio and the end-of-recording check in record() do report.
+_PROBE_ON_OPEN = sys.platform != "darwin"
+# Appended to every "captured only silence" warning. On macOS a stream also
+# reads as bit-exact zero when the app has no Microphone permission —
+# CoreAudio returns silence instead of raising — so the audio device is the
+# wrong thing to go debug, especially on a first run. Empty elsewhere.
+MACOS_SILENCE_HINT = (
+    "\n  -> On macOS, also check Microphone permission: System Settings > "
+    "Privacy & Security >\n     Microphone — enable it for the app running the "
+    "agent (Terminal/iTerm, or the GUI\n     app), then restart that app. "
+    "Without it, capture returns pure silence and no error."
+) if sys.platform == "darwin" else ""
 _LOOPBACK_PROBE_ATTEMPTS = 3
 _PROBE_FRAMES = SAMPLE_RATE // 4  # ~0.25s dead-stream probe, independent of _BLOCK
 _RECONNECT_BACKOFF = 2  # seconds to wait before reopening a stream that errored
@@ -153,11 +170,12 @@ def capture_loopback(device, stop: threading.Event, chunks: list,
             with device.recorder(samplerate=SAMPLE_RATE, blocksize=_STREAM_BLOCK) as rec:
                 # Short probe (~0.25s) to catch the dead-on-open quirk cheaply.
                 probe = rec.record(numframes=_PROBE_FRAMES)
-                if is_dead_silence(probe) and silent_attempts < _LOOPBACK_PROBE_ATTEMPTS - 1:
+                dead = _PROBE_ON_OPEN and is_dead_silence(probe)
+                if dead and silent_attempts < _LOOPBACK_PROBE_ATTEMPTS - 1:
                     silent_attempts += 1
                     print(f"  [loopback] stream came up silent (attempt {silent_attempts}/{_LOOPBACK_PROBE_ATTEMPTS}), reopening...")
                     continue
-                if is_dead_silence(probe):
+                if dead:
                     print(
                         f"  [loopback] WARNING: still silent after {_LOOPBACK_PROBE_ATTEMPTS} attempts — "
                         "system audio may not be captured for this meeting. "
@@ -261,6 +279,14 @@ def record(meeting_dir: Path) -> Path:
     mixed = np.zeros(length, dtype=np.float32)
     mixed[: len(loop_audio)] += loop_audio
     mixed[: len(mic_audio)] += mic_audio
+    # Catches what the per-stream probe cannot: both channels opened fine and
+    # returned nothing but zeros for the whole meeting (on macOS, a denied
+    # permission or an output that never reached the virtual device). Say it
+    # while the person is still at the machine, not at transcribe time.
+    if is_dead_silence(mixed):
+        print("\nWARNING: the whole recording is bit-exact silence — nothing was "
+              "captured. Run `meetings-agent check-audio` before recording again."
+              + MACOS_SILENCE_HINT)
     peak = np.abs(mixed).max()
     if peak > 1.0:
         mixed /= peak
