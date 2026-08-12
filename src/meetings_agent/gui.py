@@ -330,18 +330,21 @@ class App:
         if not path.exists():
             self.log_queue.put(f"\nKhông tìm thấy file để mở: {path}\n")
             return
-        if sys.platform == "win32":
-            os.startfile(str(path))
-            return
-        import subprocess
-        # macOS has no xdg-open; `open` is its equivalent. Failing to launch a
-        # viewer must not take down the Tk callback that just finished a
-        # summary, so report it in the log like any other GUI-level problem.
-        opener = "open" if sys.platform == "darwin" else "xdg-open"
+        # Failing to launch a viewer must not take down the Tk callback that
+        # just finished a summary, so report it in the log like any other
+        # GUI-level problem. Windows needs that just as much: os.startfile
+        # raises OSError when the extension has no associated application,
+        # which is the default state for .md there.
         try:
-            subprocess.Popen([opener, str(path)])
+            if sys.platform == "win32":
+                os.startfile(str(path))
+            else:
+                import subprocess
+                # macOS has no xdg-open; `open` is its equivalent.
+                opener = "open" if sys.platform == "darwin" else "xdg-open"
+                subprocess.Popen([opener, str(path)])
         except OSError as e:
-            self.log_queue.put(f"\nKhông mở được file ({opener}: {e}): {path}\n")
+            self.log_queue.put(f"\nKhông mở được file ({e}): {path}\n")
 
     def _on_summary_done(self, published) -> None:
         self.last_summary = Path(published) if published else None
