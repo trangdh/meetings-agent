@@ -77,7 +77,9 @@ Trên Windows, `soundcard` tự lấy bất kỳ thiết bị nào đang là **D
 meetings-agent check-audio
 ```
 
-**Lưu ý về loopback không ổn định:** trên một số driver audio, loopback stream đôi khi "chết" ngay khi mở — im lặng tuyệt đối dù có audio đang phát. Agent tự phát hiện (im lặng bit-chính-xác, khác với âm thanh thật dù nhỏ vẫn có nhiễu nền) và tự mở lại stream tối đa 3 lần trước khi bắt đầu ghi thật. Nếu vẫn thất bại sau 3 lần, sẽ có cảnh báo `WARNING: still silent after 3 attempts` trên console khi chạy `record` — nếu thấy dòng này, dừng lại và chạy `check-audio` để kiểm tra trước khi họp tiếp tục.
+**Lưu ý về loopback không ổn định (Windows):** trên một số driver audio, loopback stream đôi khi "chết" ngay khi mở — im lặng tuyệt đối dù có audio đang phát. Agent tự phát hiện (im lặng bit-chính-xác, khác với âm thanh thật dù nhỏ vẫn có nhiễu nền) và tự mở lại stream tối đa 3 lần trước khi bắt đầu ghi thật. Nếu vẫn thất bại sau 3 lần, sẽ có cảnh báo `WARNING: still silent after 3 attempts` trên console khi chạy `record` — nếu thấy dòng này, dừng lại và chạy `check-audio` để kiểm tra trước khi họp tiếp tục.
+
+Cách tự phát hiện này chỉ chạy trên Windows: nó dựa vào việc loopback WASAPI luôn có nhiễu nền, nên im lặng tuyệt đối nghĩa là stream chết. Virtual audio device trên macOS thì im lặng tuyệt đối một cách hợp lệ mỗi khi chưa có ai nói, nên trên macOS agent bỏ qua bước này (nếu không sẽ báo động giả ở mọi buổi họp bắt đầu trong im lặng). Bù lại, **trên mọi hệ điều hành**, nếu cả buổi họp thu về im lặng tuyệt đối thì `record` báo ngay khi vừa dừng thu — lúc bạn còn ngồi ở máy, chứ không phải đến bước `transcribe` mới biết. Trên macOS, nguyên nhân hay gặp nhất là quyền Microphone hoặc Output không còn trỏ vào Multi-Output Device.
 
 ```powershell
 # Cách nhanh nhất: join huddle trên Slack rồi chạy, Ctrl+C khi họp xong
