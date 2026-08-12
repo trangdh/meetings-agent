@@ -211,6 +211,9 @@ class App:
                                      fg="white", bg=DANGER, hover=DANGER_HOVER, bold=True)
         self.stop_btn.configure(state="disabled")
         self.stop_btn.pack(side="left", padx=(8, 0))
+        self.check_btn = _flat_button(rec_row, "🎧 Kiểm tra audio", self._check_audio,
+                                      fg=INK, bg=NEUTRAL, hover=NEUTRAL_HOVER)
+        self.check_btn.pack(side="left", padx=(8, 0))
 
         self.run_all_btn = _flat_button(
             c, "▶  Chạy tự động   ·   Transcribe → Correct → Summarize",
@@ -298,6 +301,7 @@ class App:
             b.configure(state=state)
         self.run_all_btn.configure(state=state)
         self.record_btn.configure(state=state)
+        self.check_btn.configure(state=state)
         self._refresh_status()
 
     def _run_in_thread(self, fn, *args, on_success=None) -> None:
@@ -355,6 +359,35 @@ class App:
     def _open_last_summary(self) -> None:
         if self.last_summary:
             self._open_file(self.last_summary)
+
+    def _check_audio(self) -> None:
+        """Confirm both channels capture, before a meeting rather than after.
+
+        Someone using the window instead of the terminal has no other way to
+        find out that the loopback is silent — and the ways it goes silent are
+        quiet ones: macOS moves the default output when a display wakes or
+        headphones are plugged in, and nothing about the app looks different
+        afterwards. Without this they would learn at the end of the meeting.
+        """
+        if self.busy or self.recording:
+            return
+
+        def run():
+            from .diagnostics import check_audio
+
+            if sys.platform == "darwin":
+                # Produce the signal here rather than asking for it: the check
+                # measures what is actually flowing, so "nobody played
+                # anything" reads exactly like a broken setup.
+                import subprocess
+                threading.Timer(1.5, lambda: subprocess.run(
+                    ["say", "-r", "160", "Checking the meetings agent audio setup."],
+                    check=False)).start()
+            else:
+                print("Phát một đoạn nhạc/video ngay bây giờ, và nói vài câu vào mic...")
+            check_audio(6.0)
+
+        self._run_in_thread(run)
 
     def _start_record(self) -> None:
         if self.busy or self.recording:
