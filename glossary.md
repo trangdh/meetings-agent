@@ -13,14 +13,37 @@ Có 2 phần:
 
 ## Whisper prompt keywords
 
-<!-- Ví dụ — xóa dòng này và điền từ khóa của team bạn: -->
-sprint, epic, issue, backlog, PO, deploy, release, staging, production, roadmap, MVP
+Claude, Anthropic, LLM, GPT, Gemini, Whisper, ASR, prompt, token, context window, embedding, RAG, fine-tuning, inference, hallucination, agent, MCP, model, API, SDK, skill, harness, project, connector, schedule, compact, remote, sprint, epic, issue, backlog, PO, deploy, release, staging, production, roadmap, MVP
 
 ---
 
 ## Chi tiết thuật ngữ
 
-<!-- Ví dụ cấu trúc — xóa và điền thuật ngữ thật của team bạn -->
+### Thuật ngữ AI / mô hình ngôn ngữ
+
+- **LLM (Large Language Model)**: mô hình ngôn ngữ lớn, whisper hay nghe nhầm thành "L L M" tách rời hoặc "el el em".
+- **Claude / Anthropic**: tên model/công ty đang dùng cho agent này — whisper hay nghe nhầm "Claude" thành "clode" hoặc "cloud".
+- **GPT**: whisper hay nghe nhầm thành "gee pee tee" hoặc "GBT".
+- **RAG (Retrieval-Augmented Generation)**: kỹ thuật truy xuất dữ liệu ngoài rồi đưa vào prompt cho model — hay nghe nhầm thành "rag" (giẻ lau) hoặc "rack".
+- **Prompt / prompt engineering**: câu lệnh đưa cho model, và kỹ thuật thiết kế câu lệnh đó.
+- **Token / context window**: đơn vị model tính chi phí/độ dài, và giới hạn lượng text model đọc được cùng lúc.
+- **Embedding**: vector số hoá của text, dùng cho tìm kiếm ngữ nghĩa — whisper hay nghe nhầm "embedding" thành "em bedding".
+- **Fine-tuning**: huấn luyện thêm model trên dữ liệu riêng.
+- **Inference**: bước model tạo ra câu trả lời (khác với training).
+- **Hallucination**: model bịa thông tin sai — whisper hay nghe nhầm thành "hallucinations" bị cắt âm.
+- **Agent / MCP (Model Context Protocol)**: agent tự động gọi tool; MCP là chuẩn kết nối agent với tool/data nguồn ngoài — whisper hay nghe nhầm "MCP" thành "M C P" tách rời hoặc "empty".
+- **Whisper / ASR**: model speech-to-text mà chính tool này dùng để transcribe — dễ nhầm với "Whisper" (tên riêng khác) trong ngữ cảnh.
+
+### Thuật ngữ Claude Code / agent harness
+
+- **Skill**: gói hướng dẫn/quy trình đóng gói sẵn cho agent (vd slash command riêng) — whisper hay nghe nhầm thành "school" hoặc "skil".
+- **Harness**: lớp điều phối chạy agent (CLI/app đang chứa agent, quản lý tool call, context...) — hay nghe nhầm thành "harnest" hoặc "harness" bị cắt âm thành "hardness".
+- **Project**: thư mục/workspace agent đang làm việc, gắn với context riêng của project đó.
+- **Connector**: tích hợp bên ngoài agent kết nối tới (Slack, Jira, Google Calendar...) — hay nghe nhầm thành "connecter" hoặc "connect to".
+- **Context**: lượng thông tin/hội thoại agent đang "nhớ" trong phiên làm việc — phân biệt với "context window" (giới hạn kỹ thuật) ở trên.
+- **Schedule / scheduled task**: tác vụ được hẹn giờ chạy tự động (cron job cho agent) — hay nghe nhầm "schedule" thành "sketch you" hoặc "shedule".
+- **Compact**: thao tác nén bớt lịch sử hội thoại khi context sắp đầy, để agent tiếp tục làm việc — hay nghe nhầm thành "compat" hoặc "compact" bị cắt âm.
+- **Remote**: agent/tác vụ chạy trên môi trường cloud từ xa thay vì máy local — hay nghe nhầm thành "remo" hoặc "remote" bị nuốt âm cuối.
 
 ### Thuật ngữ sản phẩm / quy trình
 
