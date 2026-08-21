@@ -141,6 +141,11 @@ GUI chạy bằng tkinter. Python cài qua Homebrew **không kèm tkinter** — 
 
 1. **[`glossary.md`](glossary.md)** — điền thuật ngữ, tên sản phẩm/feature, tên khách hàng lớn, tên platform, tên đội **của team bạn** (file hiện tại chỉ là template rỗng có ví dụ). Càng đầy đủ, cả whisper (nghe đúng ngay từ đầu) lẫn Claude (sửa lỗi bằng ngữ cảnh) càng chính xác hơn theo thời gian. Cập nhật liên tục khi có tên mới xuất hiện.
 
+   Agent chạy trên máy của **người đang ngồi trong huddle**, tức mỗi buổi có thể là một người khác. Nếu glossary chỉ nằm trong repo của từng người thì mỗi máy nghe đúng một kiểu và không ai tích luỹ được gì. Đặt `GLOSSARY_FILE` trong `.env` để trỏ tới một file glossary dùng chung của team (repo private, thư mục share...) — mọi người dùng chung một bộ thuật ngữ, ai thêm từ mới thì cả team hưởng, và tên nội bộ không phải nằm trong repo này:
+   ```
+   GLOSSARY_FILE=C:\path\to\your\team-glossary.md
+   ```
+
 2. **[`prompts/*.md`](prompts/)** — nội dung/cấu trúc mà agent tóm tắt theo. 4 file:
    - `sprint_summary.md` — họp sprint (profile `sprint`)
    - `client_meeting.md` — họp khách hàng/partner (profile `client`)

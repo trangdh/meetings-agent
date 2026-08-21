@@ -16,7 +16,13 @@ SPRINT_PROMPT_FILE = PROJECT_ROOT / "prompts" / "sprint_summary.md"
 CLIENT_PROMPT_FILE = PROJECT_ROOT / "prompts" / "client_meeting.md"
 GENERAL_PROMPT_FILE = PROJECT_ROOT / "prompts" / "general_summary.md"
 CORRECTION_PROMPT_FILE = PROJECT_ROOT / "prompts" / "transcript_correction.md"
-GLOSSARY_FILE = PROJECT_ROOT / "glossary.md"
+# The glossary in this repo is a public template, but a real one is the
+# opposite: it is team-specific, and only pays off if everyone who runs the
+# agent shares — and keeps adding to — the same file. Overridable so that file
+# can live wherever the team already shares things (next to KNOWLEDGE_FILE,
+# say), instead of forcing a choice between a stale private copy per laptop
+# and committing internal names into a repo meant to be published.
+GLOSSARY_FILE = Path(os.getenv("GLOSSARY_FILE") or PROJECT_ROOT / "glossary.md")
 
 CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-sonnet-5")
 MEETING_TYPE = os.getenv("MEETING_TYPE", "auto")  # "auto" = detect from transcript; or sprint/client/general
